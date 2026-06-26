@@ -13,6 +13,7 @@ import (
 type ReservationService interface {
 	Create(ctx context.Context, userID int, request dto.CreateReservationRequest) (*dto.ReservationResponse, error)
 	GetMyReservations(ctx context.Context, userID int) ([]dto.MyReservationResponse, error)
+	Cancel(ctx context.Context, reservationID int, requesterUserID int) error
 }
 
 type reservationService struct {
@@ -80,4 +81,23 @@ func (s *reservationService) GetMyReservations(ctx context.Context, userID int) 
 	}
 
 	return responses, nil
+}
+
+func (s *reservationService) Cancel(ctx context.Context, reservationID int, requesterUserID int) error {
+	reservation, err := s.reservationRepository.FindByID(ctx, reservationID)
+	if err != nil {
+		return err
+	}
+
+	if reservation.UserID != requesterUserID {
+		return apperror.Forbidden("Forbidden", nil, nil)
+	}
+
+	if reservation.Status != models.ReservationStatusActive {
+		return apperror.Conflict("Reservation cannot be cancelled", map[string]string{
+			"status": "Only active reservations can be cancelled",
+		}, nil)
+	}
+
+	return s.reservationRepository.UpdateStatus(ctx, reservationID, models.ReservationStatusCancelled)
 }

@@ -15,6 +15,8 @@ import (
 type ReservationRepository interface {
 	Create(ctx context.Context, reservation *models.Reservation) error
 	FindByUserID(ctx context.Context, userID int) ([]models.Reservation, error)
+	FindByID(ctx context.Context, id int) (*models.Reservation, error)
+	UpdateStatus(ctx context.Context, id int, status string) error
 }
 
 type reservationRepository struct {
@@ -88,6 +90,32 @@ func (r *reservationRepository) FindByUserID(ctx context.Context, userID int) ([
 	}
 
 	return reservations, nil
+}
+
+func (r *reservationRepository) FindByID(ctx context.Context, id int) (*models.Reservation, error) {
+	var reservation models.Reservation
+	if err := r.db.WithContext(ctx).First(&reservation, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, apperror.NotFound("Reservation not found", nil, err)
+		}
+
+		return nil, apperror.Internal("Internal server error", err)
+	}
+
+	return &reservation, nil
+}
+
+func (r *reservationRepository) UpdateStatus(ctx context.Context, id int, status string) error {
+	result := r.db.WithContext(ctx).Model(&models.Reservation{}).Where("id = ?", id).Update("status", status)
+	if result.Error != nil {
+		return apperror.Internal("Internal server error", result.Error)
+	}
+
+	if result.RowsAffected == 0 {
+		return apperror.NotFound("Reservation not found", nil, nil)
+	}
+
+	return nil
 }
 
 func isDuplicateActiveLicensePlateError(err error) bool {

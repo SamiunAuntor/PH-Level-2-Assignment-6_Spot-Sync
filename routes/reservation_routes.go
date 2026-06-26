@@ -13,4 +13,5 @@ func RegisterReservationRoutes(e *echo.Echo, cfg config.Config, reservationHandl
 	reservationsGroup.Use(appmiddleware.JWTAuthMiddleware(cfg.JWTSecret))
 	reservationsGroup.POST("", reservationHandler.Create)
 	reservationsGroup.GET("/my-reservations", reservationHandler.GetMyReservations)
+	reservationsGroup.DELETE("/:id", reservationHandler.Cancel)
 }

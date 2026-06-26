@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/labstack/echo/v4"
 
@@ -55,4 +56,22 @@ func (h *ReservationHandler) GetMyReservations(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, response.Success("My reservations retrieved successfully", reservations))
+}
+
+func (h *ReservationHandler) Cancel(c echo.Context) error {
+	userID, err := appmiddleware.GetUserID(c)
+	if err != nil {
+		return err
+	}
+
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		return apperror.BadRequest("Invalid reservation ID", nil, err)
+	}
+
+	if err := h.reservationService.Cancel(c.Request().Context(), id, userID); err != nil {
+		return err
+	}
+
+	return c.JSON(http.StatusOK, response.Success("Reservation cancelled successfully", nil))
 }
