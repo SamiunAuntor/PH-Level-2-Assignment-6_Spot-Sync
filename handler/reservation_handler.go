@@ -1,0 +1,44 @@
+package handler
+
+import (
+	"net/http"
+
+	"github.com/labstack/echo/v4"
+
+	apperror "spotsync/apperror"
+	"spotsync/dto"
+	appmiddleware "spotsync/middleware"
+	"spotsync/response"
+	"spotsync/service"
+)
+
+type ReservationHandler struct {
+	reservationService service.ReservationService
+}
+
+func NewReservationHandler(reservationService service.ReservationService) *ReservationHandler {
+	return &ReservationHandler{reservationService: reservationService}
+}
+
+func (h *ReservationHandler) Create(c echo.Context) error {
+	userID, err := appmiddleware.GetUserID(c)
+	if err != nil {
+		return err
+	}
+
+	var request dto.CreateReservationRequest
+	if err := c.Bind(&request); err != nil {
+		return apperror.BadRequest("Invalid request body", nil, err)
+	}
+
+	if err := c.Validate(&request); err != nil {
+		return err
+	}
+
+	reservation, err := h.reservationService.Create(c.Request().Context(), userID, request)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(http.StatusCreated, response.Success("Reservation confirmed successfully", reservation))
+}

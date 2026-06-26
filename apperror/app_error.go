@@ -104,11 +104,19 @@ func ValidationDetails(validationErrors validator.ValidationErrors) map[string]s
 func validationMessage(fieldError validator.FieldError) string {
 	switch fieldError.Tag() {
 	case "required":
+		switch fieldError.Field() {
+		case "ZoneID":
+			return "Zone ID is required"
+		case "LicensePlate":
+			return "License plate is required"
+		}
 		return titleCase(fieldError.Field()) + " is required"
 	case "email":
 		return titleCase(fieldError.Field()) + " must be a valid email address"
 	case "gt":
 		switch fieldError.Field() {
+		case "ZoneID":
+			return "Zone ID must be greater than zero"
 		case "TotalCapacity":
 			return "Total capacity must be greater than zero"
 		case "PricePerHour":
@@ -121,6 +129,9 @@ func validationMessage(fieldError validator.FieldError) string {
 	case "max":
 		if fieldError.Field() == "Password" {
 			return "Password must not exceed 72 characters"
+		}
+		if fieldError.Field() == "LicensePlate" {
+			return "License plate must not exceed 15 characters"
 		}
 	case "oneof":
 		if fieldError.Field() == "Role" {
@@ -150,6 +161,10 @@ func toJSONFieldName(name string) string {
 		return "total_capacity"
 	case "PricePerHour":
 		return "price_per_hour"
+	case "ZoneID":
+		return "zone_id"
+	case "LicensePlate":
+		return "license_plate"
 	default:
 		return strings.ToLower(name)
 	}
