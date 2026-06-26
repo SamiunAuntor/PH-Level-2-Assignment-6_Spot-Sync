@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 
 	apperrors "spotsync/apperror"
@@ -18,6 +19,12 @@ func HTTPErrorHandler(err error, c echo.Context) {
 	var appErr *apperrors.AppError
 	if errors.As(err, &appErr) {
 		_ = c.JSON(appErr.StatusCode, response.Error(appErr.Message, appErr.Details))
+		return
+	}
+
+	var validationErrors validator.ValidationErrors
+	if errors.As(err, &validationErrors) {
+		_ = c.JSON(http.StatusBadRequest, response.Error("Validation failed", apperrors.ValidationDetails(validationErrors)))
 		return
 	}
 

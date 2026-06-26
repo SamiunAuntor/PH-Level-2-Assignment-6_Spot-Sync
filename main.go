@@ -5,19 +5,22 @@ import (
 	"errors"
 	"log"
 	"net/http"
-	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
 	"github.com/labstack/echo/v4"
 	echomiddleware "github.com/labstack/echo/v4/middleware"
+	"gorm.io/gorm"
 
 	"spotsync/config"
 	"spotsync/database"
-	"spotsync/models"
-	apperrors "spotsync/apperror"
+	"spotsync/handler"
 	appmiddleware "spotsync/middleware"
+	"spotsync/models"
+	"spotsync/repository"
+	"spotsync/routes"
+	"spotsync/service"
 	"spotsync/validator"
 )
 
@@ -50,6 +53,8 @@ func main() {
 		AllowMethods: []string{http.MethodGet, http.MethodPost, http.MethodPatch, http.MethodPut, http.MethodDelete, http.MethodOptions},
 	}))
 
+	registerDependencies(e, db, cfg)
+
 	serverErrors := make(chan error, 1)
 
 	go func() {
@@ -72,4 +77,12 @@ func main() {
 			log.Fatal(err)
 		}
 	}
+}
+
+func registerDependencies(e *echo.Echo, db *gorm.DB, cfg config.Config) {
+	userRepository := repository.NewUserRepository(db)
+	authService := service.NewAuthService(userRepository, cfg.JWTSecret, cfg.JWTExpiresIn)
+	authHandler := handler.NewAuthHandler(authService)
+
+	routes.RegisterAuthRoutes(e, authHandler)
 }

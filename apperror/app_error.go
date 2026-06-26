@@ -2,7 +2,9 @@ package apperror
 
 import (
 	"net/http"
+	"strings"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 )
 
@@ -82,4 +84,65 @@ func FromHTTPError(httpErr *echo.HTTPError) (string, interface{}) {
 	}
 
 	return message, nil
+}
+
+func ValidationDetails(validationErrors validator.ValidationErrors) map[string]string {
+	details := make(map[string]string, len(validationErrors))
+
+	for _, fieldError := range validationErrors {
+		field := toJSONFieldName(fieldError.Field())
+		if _, exists := details[field]; exists {
+			continue
+		}
+
+		details[field] = validationMessage(fieldError)
+	}
+
+	return details
+}
+
+func validationMessage(fieldError validator.FieldError) string {
+	switch fieldError.Tag() {
+	case "required":
+		return titleCase(fieldError.Field()) + " is required"
+	case "email":
+		return titleCase(fieldError.Field()) + " must be a valid email address"
+	case "min":
+		if fieldError.Field() == "Password" {
+			return "Password must be at least 8 characters long"
+		}
+	case "max":
+		if fieldError.Field() == "Password" {
+			return "Password must not exceed 72 characters"
+		}
+	case "oneof":
+		if fieldError.Field() == "Role" {
+			return "Role must be either driver or admin"
+		}
+	}
+
+	return titleCase(fieldError.Field()) + " is invalid"
+}
+
+func toJSONFieldName(name string) string {
+	switch name {
+	case "Name":
+		return "name"
+	case "Email":
+		return "email"
+	case "Password":
+		return "password"
+	case "Role":
+		return "role"
+	default:
+		return strings.ToLower(name)
+	}
+}
+
+func titleCase(value string) string {
+	if value == "" {
+		return value
+	}
+
+	return strings.ToUpper(value[:1]) + strings.ToLower(value[1:])
 }
