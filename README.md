@@ -108,6 +108,57 @@ Use `.env.example` as the reference.
 | `JWT_EXPIRES_IN` | No | Token lifetime, default `24h` |
 | `CORS_ALLOWED_ORIGINS` | No | Allowed origins, default `*` |
 
+## Database Schema
+
+### `users`
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | `int` | Primary key, auto-increment |
+| `name` | `text` | Required |
+| `email` | `text` | Required, unique |
+| `password` | `text` | Hashed with bcrypt |
+| `role` | `varchar(20)` | `driver` or `admin` |
+| `created_at` | `timestamptz` | Auto managed |
+| `updated_at` | `timestamptz` | Auto managed |
+
+### `parking_zones`
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | `int` | Primary key, auto-increment |
+| `name` | `text` | Required |
+| `type` | `varchar(30)` | `general`, `ev_charging`, or `covered` |
+| `total_capacity` | `integer` | Must be greater than `0` |
+| `price_per_hour` | `numeric(10,2)` | Must be greater than `0` |
+| `created_at` | `timestamptz` | Auto managed |
+| `updated_at` | `timestamptz` | Auto managed |
+
+### `reservations`
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | `int` | Primary key, auto-increment |
+| `user_id` | `int` | Foreign key to `users.id` |
+| `zone_id` | `int` | Foreign key to `parking_zones.id` |
+| `license_plate` | `varchar(15)` | Required |
+| `status` | `varchar(20)` | `active`, `completed`, or `cancelled` |
+| `created_at` | `timestamptz` | Auto managed |
+| `updated_at` | `timestamptz` | Auto managed |
+
+## Common HTTP Status Codes
+
+| Status Code | Meaning | Typical Usage In This Project |
+| --- | --- | --- |
+| `200 OK` | Request succeeded | Fetching resources, successful cancel/update |
+| `201 Created` | Resource created successfully | Registration, zone creation, reservation creation |
+| `400 Bad Request` | Invalid input or validation failure | Invalid body, malformed ID, bad request data |
+| `401 Unauthorized` | Missing or invalid authentication | Missing token, invalid token, failed login |
+| `403 Forbidden` | Authenticated but not allowed | Driver trying admin-only endpoint |
+| `404 Not Found` | Requested resource does not exist | Zone or reservation not found |
+| `409 Conflict` | State conflict with business rules | Zone full, duplicate plate, invalid reservation state |
+| `500 Internal Server Error` | Unexpected server-side error | Unhandled internal failure |
+
 ## Getting Started
 
 ### 1. Clone the repository
