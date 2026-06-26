@@ -1,53 +1,68 @@
-# SpotSync API
+# 🚗 SpotSync API
 
-SpotSync is a Go backend for smart parking and EV charging reservation management. It supports user authentication, parking zone management, live availability tracking, and reservation handling with concurrency-safe booking logic to prevent overbooking limited spots.
+SpotSync API is a Go backend for smart parking and EV charging reservation management. It provides authentication, role-based access control, parking zone management, live spot availability, and concurrency-safe reservation handling so the final available slot cannot be double-booked.
 
-## Live URL
+## Live Project
 
-```text
-TBD
-```
+- Repository: [PH-Level-2-Assignment-6_Spot-Sync](https://github.com/SamiunAuntor/PH-Level-2-Assignment-6_Spot-Sync)
+- Live API: [https://spot-sync-api.onrender.com/](https://spot-sync-api.onrender.com/)
+- API Testing Guide: [postman/API_TESTING.md](https://github.com/SamiunAuntor/PH-Level-2-Assignment-6_Spot-Sync/blob/main/postman/API_TESTING.md)
 
-## Features
+## Overview
 
-- User registration and login with JWT authentication
-- Role-based access control for `driver` and `admin`
-- Public parking zone listing with dynamic `available_spots`
-- Admin parking zone creation, update, and deletion
-- Reservation creation for authenticated users
+This project was built as a backend-only parking reservation system where:
+
+- users can register and log in with JWT authentication
+- drivers can browse parking zones, reserve spots, and manage their own reservations
+- admins can manage parking zones and inspect all reservations
+- live availability is derived from active reservations
+- reservation creation is protected with transactions and row-level locking
+
+## Core Features
+
+- JWT-based authentication for `driver` and `admin`
+- Clean layered architecture with manual dependency injection
+- Public parking zone listing and single-zone retrieval
+- Admin parking zone create, update, and delete
+- Authenticated reservation creation
 - Owner-only reservation cancellation
-- Admin access to all reservation records
-- Concurrency-safe reservation creation using GORM transactions and row locking
+- Admin access to all reservations
+- Centralized validation and error handling
+- PostgreSQL persistence with GORM
+- Concurrency-safe spot booking using `FOR UPDATE`
 
 ## Tech Stack
 
-| Technology | Usage |
+| Technology | Purpose |
 | --- | --- |
 | Go 1.22+ | Backend language |
 | Echo v4 | HTTP framework |
-| GORM | ORM |
-| PostgreSQL | Database |
-| validator/v10 | Request validation |
+| GORM | Database ORM |
+| PostgreSQL | Primary database |
 | JWT v5 | Authentication |
 | bcrypt | Password hashing |
+| validator/v10 | Request validation |
+| Render | Backend deployment |
+| NeonDB | Hosted PostgreSQL |
 
 ## Architecture
 
-The project follows the clean architecture rules required in the assignment:
+The codebase follows a clean, layered backend structure:
 
 ```text
 DTO -> Handler -> Service -> Repository -> GORM -> PostgreSQL
 ```
 
-Responsibilities:
+Layer responsibilities:
 
-- `dto/`: request and response payloads
-- `handler/`: HTTP request handling and response writing
-- `service/`: business rules and orchestration
-- `repository/`: database queries, transactions, and row locks
-- `models/`: GORM entity definitions
+- `dto/` defines request payloads and transport-facing structures
+- `handler/` parses requests and returns HTTP responses
+- `service/` contains business rules and orchestration
+- `repository/` handles database access, transactions, and locking
+- `models/` defines persistent entities and GORM mappings
+- `middleware/` handles auth, roles, and centralized error flow
 
-Manual dependency injection is done in `main.go`.
+Dependency wiring is done manually in `main.go`.
 
 ## Roles and Permissions
 
@@ -55,43 +70,56 @@ Manual dependency injection is done in `main.go`.
 
 - Register and log in
 - View all parking zones and availability
-- Reserve a parking or EV charging spot
-- View their own reservations
-- Cancel their own reservations
+- Create reservations
+- View personal reservations
+- Cancel personal reservations
 
 ### Admin
 
-- All driver permissions
+- All driver capabilities
 - Create parking zones
 - Update parking zones
 - Delete parking zones
-- Set pricing through zone updates
 - View all reservations
+
+## Concurrency Safety
+
+The reservation flow protects against overbooking when multiple users try to claim the final remaining spot at the same time.
+
+How it works:
+
+- a database transaction is started
+- the selected parking zone row is locked with `FOR UPDATE`
+- active reservations for that zone are counted inside the same transaction
+- capacity is validated before insertion
+- the reservation is created atomically only if space still exists
+
+This ensures a zone never exceeds its configured `total_capacity`.
 
 ## Environment Variables
 
-Use `.env.example` as the reference for local configuration.
+Use `.env.example` as the reference.
 
 | Variable | Required | Description |
 | --- | --- | --- |
-| `PORT` | No | Server port, default `8080` |
+| `PORT` | No | Server port, defaults to `8080` locally |
 | `DATABASE_URL` | Yes | PostgreSQL connection string |
 | `JWT_SECRET` | Yes | JWT signing secret |
 | `JWT_EXPIRES_IN` | No | Token lifetime, default `24h` |
 | `CORS_ALLOWED_ORIGINS` | No | Allowed origins, default `*` |
 
-## Local Setup
+## Getting Started
 
 ### 1. Clone the repository
 
 ```powershell
-git clone <repository-url>
-cd SpotSync
+git clone https://github.com/SamiunAuntor/PH-Level-2-Assignment-6_Spot-Sync.git
+cd PH-Level-2-Assignment-6_Spot-Sync
 ```
 
 ### 2. Configure environment variables
 
-Create a `.env` file and provide values for:
+Create a `.env` file based on `.env.example` and set at least:
 
 - `DATABASE_URL`
 - `JWT_SECRET`
@@ -108,7 +136,7 @@ go mod tidy
 go run .
 ```
 
-Default local URL:
+Local base URL:
 
 ```text
 http://localhost:8080
@@ -138,12 +166,7 @@ http://localhost:8080
 
 ## Example Requests
 
-### Register
-
-```http
-POST /api/v1/auth/register
-Content-Type: application/json
-```
+### Register User
 
 ```json
 {
@@ -156,11 +179,6 @@ Content-Type: application/json
 
 ### Login
 
-```http
-POST /api/v1/auth/login
-Content-Type: application/json
-```
-
 ```json
 {
   "email": "john.doe@spotsync.com",
@@ -169,12 +187,6 @@ Content-Type: application/json
 ```
 
 ### Create Parking Zone
-
-```http
-POST /api/v1/zones
-Authorization: Bearer <admin_token>
-Content-Type: application/json
-```
 
 ```json
 {
@@ -187,12 +199,6 @@ Content-Type: application/json
 
 ### Create Reservation
 
-```http
-POST /api/v1/reservations
-Authorization: Bearer <driver_or_admin_token>
-Content-Type: application/json
-```
-
 ```json
 {
   "zone_id": 1,
@@ -200,21 +206,9 @@ Content-Type: application/json
 }
 ```
 
-## Concurrency Handling
+For full endpoint-by-endpoint request and response examples, see the API testing guide:
 
-Reservation creation is protected from overbooking by:
-
-- starting a database transaction
-- locking the selected parking zone row with `FOR UPDATE`
-- counting active reservations inside the same transaction
-- rejecting booking when the zone is full
-- inserting the reservation inside the same transaction
-
-This ensures two simultaneous requests cannot both reserve the final available spot.
-
-## CORS
-
-`CORS_ALLOWED_ORIGINS=*` is acceptable for development and testing. For deployment, replace it with the actual frontend origin or a comma-separated list of trusted origins.
+- [API_TESTING.md](https://github.com/SamiunAuntor/PH-Level-2-Assignment-6_Spot-Sync/blob/main/postman/API_TESTING.md)
 
 ## Project Structure
 
@@ -232,25 +226,13 @@ response/
 routes/
 service/
 validator/
+.env.example
 main.go
+README.md
 ```
 
-## Project Links
+## Notes
 
-### Repository
-
-```text
-TBD
-```
-
-### Live Deployment
-
-```text
-TBD
-```
-
-### Interview Video
-
-```text
-TBD
-```
+- `CORS_ALLOWED_ORIGINS=*` is acceptable for testing across different machines
+- for production frontend integration, restrict CORS to trusted origins
+- the extra zone update and delete endpoints use the same `/api/v1/zones/:id` URL pattern as the rest of the API
