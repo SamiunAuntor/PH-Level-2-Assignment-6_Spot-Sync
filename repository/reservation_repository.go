@@ -15,6 +15,7 @@ import (
 type ReservationRepository interface {
 	Create(ctx context.Context, reservation *models.Reservation) error
 	FindByUserID(ctx context.Context, userID int) ([]models.Reservation, error)
+	FindAll(ctx context.Context) ([]models.Reservation, error)
 	FindByID(ctx context.Context, id int) (*models.Reservation, error)
 	UpdateStatus(ctx context.Context, id int, status string) error
 }
@@ -84,6 +85,19 @@ func (r *reservationRepository) FindByUserID(ctx context.Context, userID int) ([
 	if err := r.db.WithContext(ctx).
 		Preload("Zone").
 		Where("user_id = ?", userID).
+		Order("id ASC").
+		Find(&reservations).Error; err != nil {
+		return nil, apperror.Internal("Internal server error", err)
+	}
+
+	return reservations, nil
+}
+
+func (r *reservationRepository) FindAll(ctx context.Context) ([]models.Reservation, error) {
+	var reservations []models.Reservation
+	if err := r.db.WithContext(ctx).
+		Preload("User").
+		Preload("Zone").
 		Order("id ASC").
 		Find(&reservations).Error; err != nil {
 		return nil, apperror.Internal("Internal server error", err)

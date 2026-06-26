@@ -58,6 +58,15 @@ func (h *ReservationHandler) GetMyReservations(c echo.Context) error {
 	return c.JSON(http.StatusOK, response.Success("My reservations retrieved successfully", reservations))
 }
 
+func (h *ReservationHandler) GetAll(c echo.Context) error {
+	reservations, err := h.reservationService.GetAll(c.Request().Context())
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(http.StatusOK, response.Success("All reservations retrieved successfully", reservations))
+}
+
 func (h *ReservationHandler) Cancel(c echo.Context) error {
 	userID, err := appmiddleware.GetUserID(c)
 	if err != nil {

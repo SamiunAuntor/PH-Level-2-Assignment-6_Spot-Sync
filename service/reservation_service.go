@@ -13,6 +13,7 @@ import (
 type ReservationService interface {
 	Create(ctx context.Context, userID int, request dto.CreateReservationRequest) (*dto.ReservationResponse, error)
 	GetMyReservations(ctx context.Context, userID int) ([]dto.MyReservationResponse, error)
+	GetAll(ctx context.Context) ([]dto.AdminReservationResponse, error)
 	Cancel(ctx context.Context, reservationID int, requesterUserID int) error
 }
 
@@ -77,6 +78,39 @@ func (s *reservationService) GetMyReservations(ctx context.Context, userID int) 
 				Type: reservation.Zone.Type,
 			},
 			CreatedAt: reservation.CreatedAt,
+		})
+	}
+
+	return responses, nil
+}
+
+func (s *reservationService) GetAll(ctx context.Context) ([]dto.AdminReservationResponse, error) {
+	reservations, err := s.reservationRepository.FindAll(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	responses := make([]dto.AdminReservationResponse, 0, len(reservations))
+	for _, reservation := range reservations {
+		responses = append(responses, dto.AdminReservationResponse{
+			ID:           reservation.ID,
+			UserID:       reservation.UserID,
+			ZoneID:       reservation.ZoneID,
+			LicensePlate: reservation.LicensePlate,
+			Status:       reservation.Status,
+			User: dto.ReservationUserSummary{
+				ID:    reservation.User.ID,
+				Name:  reservation.User.Name,
+				Email: reservation.User.Email,
+				Role:  reservation.User.Role,
+			},
+			Zone: dto.ReservationZoneSummary{
+				ID:   reservation.Zone.ID,
+				Name: reservation.Zone.Name,
+				Type: reservation.Zone.Type,
+			},
+			CreatedAt: reservation.CreatedAt,
+			UpdatedAt: reservation.UpdatedAt,
 		})
 	}
 
