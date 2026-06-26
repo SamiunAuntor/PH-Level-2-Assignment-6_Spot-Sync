@@ -14,7 +14,7 @@ import (
 type UserRepository interface {
 	Create(ctx context.Context, user *models.User) error
 	FindByEmail(ctx context.Context, email string) (*models.User, error)
-	FindByID(ctx context.Context, id uint) (*models.User, error)
+	FindByID(ctx context.Context, id int) (*models.User, error)
 }
 
 type userRepository struct {
@@ -52,7 +52,7 @@ func (r *userRepository) FindByEmail(ctx context.Context, email string) (*models
 	return &user, nil
 }
 
-func (r *userRepository) FindByID(ctx context.Context, id uint) (*models.User, error) {
+func (r *userRepository) FindByID(ctx context.Context, id int) (*models.User, error) {
 	var user models.User
 	if err := r.db.WithContext(ctx).First(&user, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

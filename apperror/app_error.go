@@ -107,6 +107,13 @@ func validationMessage(fieldError validator.FieldError) string {
 		return titleCase(fieldError.Field()) + " is required"
 	case "email":
 		return titleCase(fieldError.Field()) + " must be a valid email address"
+	case "gt":
+		switch fieldError.Field() {
+		case "TotalCapacity":
+			return "Total capacity must be greater than zero"
+		case "PricePerHour":
+			return "Price per hour must be greater than zero"
+		}
 	case "min":
 		if fieldError.Field() == "Password" {
 			return "Password must be at least 8 characters long"
@@ -118,6 +125,9 @@ func validationMessage(fieldError validator.FieldError) string {
 	case "oneof":
 		if fieldError.Field() == "Role" {
 			return "Role must be either driver or admin"
+		}
+		if fieldError.Field() == "Type" {
+			return "Type must be one of general, ev_charging, or covered"
 		}
 	}
 
@@ -134,6 +144,12 @@ func toJSONFieldName(name string) string {
 		return "password"
 	case "Role":
 		return "role"
+	case "Type":
+		return "type"
+	case "TotalCapacity":
+		return "total_capacity"
+	case "PricePerHour":
+		return "price_per_hour"
 	default:
 		return strings.ToLower(name)
 	}

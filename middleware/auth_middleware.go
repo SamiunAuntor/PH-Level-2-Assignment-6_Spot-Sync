@@ -61,9 +61,9 @@ func JWTAuthMiddleware(jwtSecret string) echo.MiddlewareFunc {
 	}
 }
 
-func GetUserID(c echo.Context) (uint, error) {
+func GetUserID(c echo.Context) (int, error) {
 	value := c.Get(string(userIDContextKey))
-	userID, ok := value.(uint)
+	userID, ok := value.(int)
 	if !ok || userID == 0 {
 		return 0, apperror.Unauthorized("Missing or invalid token", nil, nil)
 	}

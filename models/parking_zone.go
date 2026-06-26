@@ -3,7 +3,7 @@ package models
 import "time"
 
 type ParkingZone struct {
-	ID            uint          `gorm:"primaryKey" json:"id"`
+	ID            int           `gorm:"primaryKey;autoIncrement;type:integer" json:"id"`
 	Name          string        `gorm:"not null" json:"name"`
 	Type          string        `gorm:"type:varchar(30);not null;check:type IN ('general','ev_charging','covered')" json:"type"`
 	TotalCapacity int           `gorm:"not null;check:total_capacity > 0" json:"total_capacity"`

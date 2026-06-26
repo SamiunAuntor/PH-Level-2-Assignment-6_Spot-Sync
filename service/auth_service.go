@@ -27,7 +27,7 @@ type authService struct {
 }
 
 type AuthClaims struct {
-	UserID uint   `json:"user_id"`
+	UserID int    `json:"user_id"`
 	Role   string `json:"role"`
 	jwt.RegisteredClaims
 }
@@ -115,7 +115,7 @@ func (s *authService) Login(ctx context.Context, request dto.LoginRequest) (*dto
 	}, nil
 }
 
-func (s *authService) generateToken(userID uint, role string) (string, error) {
+func (s *authService) generateToken(userID int, role string) (string, error) {
 	now := time.Now().UTC()
 	claims := AuthClaims{
 		UserID: userID,

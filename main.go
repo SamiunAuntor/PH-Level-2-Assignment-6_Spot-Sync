@@ -81,8 +81,14 @@ func main() {
 
 func registerDependencies(e *echo.Echo, db *gorm.DB, cfg config.Config) {
 	userRepository := repository.NewUserRepository(db)
+	parkingZoneRepository := repository.NewParkingZoneRepository(db)
+
 	authService := service.NewAuthService(userRepository, cfg.JWTSecret, cfg.JWTExpiresIn)
+	parkingZoneService := service.NewParkingZoneService(parkingZoneRepository)
+
 	authHandler := handler.NewAuthHandler(authService)
+	parkingZoneHandler := handler.NewParkingZoneHandler(parkingZoneService)
 
 	routes.RegisterAuthRoutes(e, authHandler)
+	routes.RegisterParkingZoneRoutes(e, cfg, parkingZoneHandler)
 }

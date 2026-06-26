@@ -15,7 +15,7 @@ type LoginRequest struct {
 }
 
 type UserResponse struct {
-	ID        uint      `json:"id"`
+	ID        int       `json:"id"`
 	Name      string    `json:"name"`
 	Email     string    `json:"email"`
 	Role      string    `json:"role"`
@@ -24,7 +24,7 @@ type UserResponse struct {
 }
 
 type LoginUserResponse struct {
-	ID    uint   `json:"id"`
+	ID    int    `json:"id"`
 	Name  string `json:"name"`
 	Email string `json:"email"`
 	Role  string `json:"role"`
