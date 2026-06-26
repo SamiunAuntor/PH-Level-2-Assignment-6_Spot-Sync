@@ -42,3 +42,17 @@ func (h *ReservationHandler) Create(c echo.Context) error {
 
 	return c.JSON(http.StatusCreated, response.Success("Reservation confirmed successfully", reservation))
 }
+
+func (h *ReservationHandler) GetMyReservations(c echo.Context) error {
+	userID, err := appmiddleware.GetUserID(c)
+	if err != nil {
+		return err
+	}
+
+	reservations, err := h.reservationService.GetMyReservations(c.Request().Context(), userID)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(http.StatusOK, response.Success("My reservations retrieved successfully", reservations))
+}

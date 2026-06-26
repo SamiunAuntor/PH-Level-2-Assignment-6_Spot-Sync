@@ -14,6 +14,7 @@ import (
 
 type ReservationRepository interface {
 	Create(ctx context.Context, reservation *models.Reservation) error
+	FindByUserID(ctx context.Context, userID int) ([]models.Reservation, error)
 }
 
 type reservationRepository struct {
@@ -74,6 +75,19 @@ func (r *reservationRepository) Create(ctx context.Context, reservation *models.
 
 		return nil
 	})
+}
+
+func (r *reservationRepository) FindByUserID(ctx context.Context, userID int) ([]models.Reservation, error) {
+	var reservations []models.Reservation
+	if err := r.db.WithContext(ctx).
+		Preload("Zone").
+		Where("user_id = ?", userID).
+		Order("id ASC").
+		Find(&reservations).Error; err != nil {
+		return nil, apperror.Internal("Internal server error", err)
+	}
+
+	return reservations, nil
 }
 
 func isDuplicateActiveLicensePlateError(err error) bool {

@@ -12,6 +12,7 @@ import (
 
 type ReservationService interface {
 	Create(ctx context.Context, userID int, request dto.CreateReservationRequest) (*dto.ReservationResponse, error)
+	GetMyReservations(ctx context.Context, userID int) ([]dto.MyReservationResponse, error)
 }
 
 type reservationService struct {
@@ -55,4 +56,28 @@ func (s *reservationService) Create(ctx context.Context, userID int, request dto
 	}
 
 	return &response, nil
+}
+
+func (s *reservationService) GetMyReservations(ctx context.Context, userID int) ([]dto.MyReservationResponse, error) {
+	reservations, err := s.reservationRepository.FindByUserID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	responses := make([]dto.MyReservationResponse, 0, len(reservations))
+	for _, reservation := range reservations {
+		responses = append(responses, dto.MyReservationResponse{
+			ID:           reservation.ID,
+			LicensePlate: reservation.LicensePlate,
+			Status:       reservation.Status,
+			Zone: dto.ReservationZoneSummary{
+				ID:   reservation.Zone.ID,
+				Name: reservation.Zone.Name,
+				Type: reservation.Zone.Type,
+			},
+			CreatedAt: reservation.CreatedAt,
+		})
+	}
+
+	return responses, nil
 }

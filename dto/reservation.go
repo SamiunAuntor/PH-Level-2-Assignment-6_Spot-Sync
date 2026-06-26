@@ -16,3 +16,17 @@ type ReservationResponse struct {
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
 }
+
+type ReservationZoneSummary struct {
+	ID   int    `json:"id"`
+	Name string `json:"name"`
+	Type string `json:"type"`
+}
+
+type MyReservationResponse struct {
+	ID           int                    `json:"id"`
+	LicensePlate string                 `json:"license_plate"`
+	Status       string                 `json:"status"`
+	Zone         ReservationZoneSummary `json:"zone"`
+	CreatedAt    time.Time              `json:"created_at"`
+}
