@@ -16,24 +16,17 @@ type ReservationService interface {
 
 type reservationService struct {
 	reservationRepository repository.ReservationRepository
-	parkingZoneRepository repository.ParkingZoneRepository
 }
 
 func NewReservationService(
 	reservationRepository repository.ReservationRepository,
-	parkingZoneRepository repository.ParkingZoneRepository,
 ) ReservationService {
 	return &reservationService{
 		reservationRepository: reservationRepository,
-		parkingZoneRepository: parkingZoneRepository,
 	}
 }
 
 func (s *reservationService) Create(ctx context.Context, userID int, request dto.CreateReservationRequest) (*dto.ReservationResponse, error) {
-	if _, err := s.parkingZoneRepository.FindByID(ctx, request.ZoneID); err != nil {
-		return nil, err
-	}
-
 	licensePlate := strings.ToUpper(strings.TrimSpace(request.LicensePlate))
 	if licensePlate == "" {
 		return nil, apperror.BadRequest("Validation failed", map[string]string{
@@ -45,7 +38,6 @@ func (s *reservationService) Create(ctx context.Context, userID int, request dto
 		UserID:       userID,
 		ZoneID:       request.ZoneID,
 		LicensePlate: licensePlate,
-		Status:       models.ReservationStatusActive,
 	}
 
 	if err := s.reservationRepository.Create(ctx, reservation); err != nil {

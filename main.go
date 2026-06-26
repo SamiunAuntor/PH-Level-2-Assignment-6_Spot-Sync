@@ -86,7 +86,7 @@ func registerDependencies(e *echo.Echo, db *gorm.DB, cfg config.Config) {
 
 	authService := service.NewAuthService(userRepository, cfg.JWTSecret, cfg.JWTExpiresIn)
 	parkingZoneService := service.NewParkingZoneService(parkingZoneRepository)
-	reservationService := service.NewReservationService(reservationRepository, parkingZoneRepository)
+	reservationService := service.NewReservationService(reservationRepository)
 
 	authHandler := handler.NewAuthHandler(authService)
 	parkingZoneHandler := handler.NewParkingZoneHandler(parkingZoneService)

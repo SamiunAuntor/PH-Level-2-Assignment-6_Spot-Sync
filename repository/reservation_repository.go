@@ -2,9 +2,11 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"strings"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 
 	apperror "spotsync/apperror"
 	"spotsync/models"
@@ -23,17 +25,55 @@ func NewReservationRepository(db *gorm.DB) ReservationRepository {
 }
 
 func (r *reservationRepository) Create(ctx context.Context, reservation *models.Reservation) error {
-	if err := r.db.WithContext(ctx).Create(reservation).Error; err != nil {
-		if isDuplicateActiveLicensePlateError(err) {
-			return apperror.Conflict("Duplicate active license plate", map[string]string{
-				"license_plate": "License plate already has an active reservation",
-			}, err)
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var zone models.ParkingZone
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&zone, reservation.ZoneID).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return apperror.NotFound("Parking zone not found", nil, err)
+			}
+
+			return apperror.Internal("Internal server error", err)
 		}
 
-		return apperror.Internal("Internal server error", err)
-	}
+		var activeCount int64
+		if err := tx.Model(&models.Reservation{}).
+			Where("zone_id = ? AND status = ?", reservation.ZoneID, models.ReservationStatusActive).
+			Count(&activeCount).Error; err != nil {
+			return apperror.Internal("Internal server error", err)
+		}
 
-	return nil
+		if activeCount >= int64(zone.TotalCapacity) {
+			return apperror.Conflict("Zone is full", map[string]string{
+				"zone_id": "No available spots in this zone",
+			}, nil)
+		}
+
+		var duplicateCount int64
+		if err := tx.Model(&models.Reservation{}).
+			Where("license_plate = ? AND status = ?", reservation.LicensePlate, models.ReservationStatusActive).
+			Count(&duplicateCount).Error; err != nil {
+			return apperror.Internal("Internal server error", err)
+		}
+
+		if duplicateCount > 0 {
+			return apperror.Conflict("Duplicate active license plate", map[string]string{
+				"license_plate": "License plate already has an active reservation",
+			}, nil)
+		}
+
+		reservation.Status = models.ReservationStatusActive
+		if err := tx.Create(reservation).Error; err != nil {
+			if isDuplicateActiveLicensePlateError(err) {
+				return apperror.Conflict("Duplicate active license plate", map[string]string{
+					"license_plate": "License plate already has an active reservation",
+				}, err)
+			}
+
+			return apperror.Internal("Internal server error", err)
+		}
+
+		return nil
+	})
 }
 
 func isDuplicateActiveLicensePlateError(err error) bool {
